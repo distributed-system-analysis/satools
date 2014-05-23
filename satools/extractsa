@@ -1,0 +1,145 @@
+#!/usr/bin/python
+
+import sys, os, tempfile, time
+from ctypes import Structure
+
+from satools.sysstat import verify_contents, Invalid, Corruption, Truncated, ContentAction, TWO_DAYS_SECONDS, FileActivitySummary
+
+if len(sys.argv) < 2:
+    print >> sys.stderr, "Missing sa data file name to extract"
+    sys.exit(1)
+
+if os.path.getsize(sys.argv[1]) == 0:
+    print >> sys.stderr, "Invalid - %s: empty data file" % sys.argv[1]
+    sys.exit(1)
+
+if len(sys.argv) > 2:
+    tgt_hostname = sys.argv[2]
+else:
+    tgt_hostname = None
+
+
+class ExtractAction(ContentAction):
+    """
+    Extract records to an saYYYYMMDD file. If disjoint datasets are
+    encountered, write them to separate new data files.
+    """
+    def __init__(self):
+        self.tgtname = ""
+        self.ofd = None
+        self.ofname = ""
+        self.dname = ""
+        self.record_count = 0
+        self.file_magic = None
+        self.file_header = None
+        self.file_activities = None
+        self.extracted = False
+
+    def _setup(self):
+        self.ofd, self.ofname = tempfile.mkstemp(dir=self.dname)
+        st = time.gmtime(self.file_header.sa_ust_time)
+        self.tgtname = "sa%04d%02d%02d" % (st.tm_year, st.tm_mon, st.tm_mday)
+        if self.file_magic is not None:
+            os.write(self.ofd, self.file_magic)
+        os.write(self.ofd, self.file_header)
+        if self.file_activities is not None:
+            for a_fa in self.file_activities.fa:
+                os.write(self.ofd, a_fa)
+
+    def start(self, name, file_magic=None, file_header=None, file_activities=None):
+        assert file_magic is None or isinstance(file_magic, Structure)
+        assert isinstance(file_header, Structure)
+        if file_activities is not None:
+            isinstance(file_activities, FileActivitySummary)
+            for a_fa in file_activities.fa:
+                assert isinstance(a_fa, Structure)
+
+        self.file_magic = file_magic
+        self.file_header = file_header
+        self.file_activities = file_activities
+        self.dname = os.path.dirname(name)
+        self._setup()
+
+    def handle_record(self, rh, record_payload=None):
+        os.write(self.ofd, rh)
+        self.record_count += 1
+        if record_payload is None:
+            return
+        if isinstance(record_payload, list):
+            for item in record_payload:
+                os.write(self.ofd, item)
+        else:
+            os.write(self.ofd, record_payload)
+
+    def handle_invalid(self, rh, prev_rh):
+        assert rh is not None
+
+        if prev_rh is None:
+            return True
+
+        if (rh.ust_time - prev_rh.ust_time) < TWO_DAYS_SECONDS:
+            return True
+
+        # Finalize what we have captured so far
+        self.end()
+
+        # Now we need to update the file header timestamp to make
+        # the current record, and continue from there as if
+        # nothing happened.
+        self.file_header.sa_ust_time = rh.ust_time
+        st = time.gmtime(self.file_header.sa_ust_time)
+        self.file_header.sa_day = st.tm_mday
+        # A time.time_struct's tm_mon field is 1 - 12, but the file header
+        # sa_month is field is from a C "struct tm" which is 0 - 11.
+        self.file_header.sa_month = st.tm_mon - 1
+        # A time.time_struct's tm_year field is the full year value, but
+        # the file header sa_year is field is # of years since 1900.
+        self.file_header.sa_year = st.tm_year - 1900
+
+        # Prepare for a new file.
+        self.record_count = 0
+        self.tgtname = ""
+        self.ofd = None
+        self.ofname = ""
+        self._setup()
+
+        return False
+
+    def end(self):
+        # Perform temp file cleanup, and rename into place
+        if self.ofd is None:
+            return
+        os.close(self.ofd)
+        self.ofd = None
+        if self.record_count == 0:
+            os.unlink(self.ofname)
+            return
+        else:
+            full_tgtname = os.path.join(self.dname, self.tgtname)
+            if os.path.exists(full_tgtname):
+                os.unlink(self.ofname)
+                return
+            else:
+                os.rename(self.ofname, full_tgtname)
+                print "Extracted %d records to %s" % (self.record_count, full_tgtname)
+                self.extracted = True
+
+
+ea = ExtractAction()
+try:
+    verify_contents(sys.argv[1], tgt_hostname, callback=ea)
+except Invalid as e:
+    print >> sys.stderr, "Invalid - %s: %s" % (sys.argv[1], e)
+    exit_code = 1 if ea.extracted else 2
+except Corruption as e:
+    print >> sys.stderr, "Corrupted - %s: %s" % (sys.argv[1], e)
+    exit_code = 1 if ea.extracted else 2
+except Truncated as e:
+    print >> sys.stderr, "Truncated - %s: %s" % (sys.argv[1], e)
+    exit_code = 1 if ea.extracted else 2
+except Exception as e:
+    print >> sys.stderr, "Error - %s: %s" % (sys.argv[1], e)
+    exit_code = 1 if ea.extracted else 2
+else:
+    exit_code = 0
+sys.exit(exit_code)
