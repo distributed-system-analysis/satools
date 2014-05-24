@@ -1,22 +1,30 @@
-#!/usr/bin/python
+#
+# Copyright 2014 Red Hat, Inc.
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation files
+# (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+# BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+# ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 
-import sys, os, tempfile, time
+import os, tempfile, time
 from ctypes import Structure
 
-from satools.sysstat import verify_contents, Invalid, Corruption, Truncated, ContentAction, TWO_DAYS_SECONDS, FileActivitySummary
-
-if len(sys.argv) < 2:
-    print >> sys.stderr, "Missing sa data file name to extract"
-    sys.exit(1)
-
-if os.path.getsize(sys.argv[1]) == 0:
-    print >> sys.stderr, "Invalid - %s: empty data file" % sys.argv[1]
-    sys.exit(1)
-
-if len(sys.argv) > 2:
-    tgt_hostname = sys.argv[2]
-else:
-    tgt_hostname = None
+from satools.sysstat import ContentAction, TWO_DAYS_SECONDS, FileActivitySummary
 
 
 class ExtractAction(ContentAction):
@@ -24,11 +32,11 @@ class ExtractAction(ContentAction):
     Extract records to an saYYYYMMDD file. If disjoint datasets are
     encountered, write them to separate new data files.
     """
-    def __init__(self):
+    def __init__(self, tgtdname):
         self.tgtname = ""
         self.ofd = None
         self.ofname = ""
-        self.dname = ""
+        self.tgtdname = tgtdname
         self.record_count = 0
         self.file_magic = None
         self.file_header = None
@@ -36,7 +44,7 @@ class ExtractAction(ContentAction):
         self.extracted = False
 
     def _setup(self):
-        self.ofd, self.ofname = tempfile.mkstemp(dir=self.dname)
+        self.ofd, self.ofname = tempfile.mkstemp(dir=self.tgtdname)
         st = time.gmtime(self.file_header.sa_ust_time)
         self.tgtname = "sa%04d%02d%02d" % (st.tm_year, st.tm_mon, st.tm_mday)
         if self.file_magic is not None:
@@ -46,7 +54,7 @@ class ExtractAction(ContentAction):
             for a_fa in self.file_activities.fa:
                 os.write(self.ofd, a_fa)
 
-    def start(self, name, file_magic=None, file_header=None, file_activities=None):
+    def start(self, file_magic=None, file_header=None, file_activities=None):
         assert file_magic is None or isinstance(file_magic, Structure)
         assert isinstance(file_header, Structure)
         if file_activities is not None:
@@ -57,7 +65,6 @@ class ExtractAction(ContentAction):
         self.file_magic = file_magic
         self.file_header = file_header
         self.file_activities = file_activities
-        self.dname = os.path.dirname(name)
         self._setup()
 
     def handle_record(self, rh, record_payload=None):
@@ -114,32 +121,10 @@ class ExtractAction(ContentAction):
         if self.record_count == 0:
             os.unlink(self.ofname)
             return
+        full_tgtname = os.path.join(self.tgtdname, self.tgtname)
+        if os.path.exists(full_tgtname):
+            os.unlink(self.ofname)
         else:
-            full_tgtname = os.path.join(self.dname, self.tgtname)
-            if os.path.exists(full_tgtname):
-                os.unlink(self.ofname)
-                return
-            else:
-                os.rename(self.ofname, full_tgtname)
-                print "Extracted %d records to %s" % (self.record_count, full_tgtname)
-                self.extracted = True
-
-
-ea = ExtractAction()
-try:
-    verify_contents(sys.argv[1], tgt_hostname, callback=ea)
-except Invalid as e:
-    print >> sys.stderr, "Invalid - %s: %s" % (sys.argv[1], e)
-    exit_code = 1 if ea.extracted else 2
-except Corruption as e:
-    print >> sys.stderr, "Corrupted - %s: %s" % (sys.argv[1], e)
-    exit_code = 1 if ea.extracted else 2
-except Truncated as e:
-    print >> sys.stderr, "Truncated - %s: %s" % (sys.argv[1], e)
-    exit_code = 1 if ea.extracted else 2
-except Exception as e:
-    print >> sys.stderr, "Error - %s: %s" % (sys.argv[1], e)
-    exit_code = 1 if ea.extracted else 2
-else:
-    exit_code = 0
-sys.exit(exit_code)
+            os.rename(self.ofname, full_tgtname)
+            print "Extracted %d records to %s" % (self.record_count, full_tgtname)
+            self.extracted = True

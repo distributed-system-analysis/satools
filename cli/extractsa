@@ -1,0 +1,60 @@
+#!/usr/bin/python
+#
+# Copyright 2014 Red Hat, Inc.
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation files
+# (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+# BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+# ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+import sys, os
+
+from satools.sysstat import verify_contents, Invalid, Corruption, Truncated
+from satools.extractsa import ExtractAction
+
+if len(sys.argv) < 2:
+    print >> sys.stderr, "Missing sa data file name to extract"
+    sys.exit(1)
+
+if os.path.getsize(sys.argv[1]) == 0:
+    print >> sys.stderr, "Invalid - %s: empty data file" % sys.argv[1]
+    sys.exit(1)
+
+if len(sys.argv) > 2:
+    tgt_hostname = sys.argv[2]
+else:
+    tgt_hostname = None
+
+ea = ExtractAction(os.path.dirname(os.path.abspath(sys.argv[1])))
+try:
+    verify_contents(sys.argv[1], tgt_hostname, callback=ea)
+except Invalid as e:
+    print >> sys.stderr, "Invalid - %s: %s" % (sys.argv[1], e)
+    exit_code = 1 if ea.extracted else 2
+except Corruption as e:
+    print >> sys.stderr, "Corrupted - %s: %s" % (sys.argv[1], e)
+    exit_code = 1 if ea.extracted else 2
+except Truncated as e:
+    print >> sys.stderr, "Truncated - %s: %s" % (sys.argv[1], e)
+    exit_code = 1 if ea.extracted else 2
+except Exception as e:
+    print >> sys.stderr, "Error - %s: %s" % (sys.argv[1], e)
+    exit_code = 1 if ea.extracted else 2
+else:
+    exit_code = 0
+sys.exit(exit_code)

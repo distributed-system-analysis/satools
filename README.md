@@ -7,5 +7,9 @@ To use:
 
 $ # From root of cloned tree
 $ export PYTHONPATH=$(pwd)
-$ satools/verifysa <file>
-$ satools/extractsa <file>
+$ cli/verifysa <file>
+$ cli/extractsa <file>
+$ cli/oscode <file>
+
+
+Released under the MIT License.

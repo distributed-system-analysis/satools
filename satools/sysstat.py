@@ -1,4 +1,27 @@
 #!/usr/bin/python
+#
+# Copyright 2014 Red Hat, Inc.
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation files
+# (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+# BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+# ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 """
 A simple module to facilitate reading sa binary data files, providing classes
 appropriate to different versions of the various binary data file formats, and
@@ -986,7 +1009,7 @@ def process_file_2169(fp, fm, fh, fa, magic, callback=None):
                 FileStats2169.SIZE, fh.sa_st_size))
 
     if callback is not None:
-        callback.start(fp.name, file_header=fh)
+        callback.start(file_header=fh)
 
     try:
         prev_fs = None
@@ -1162,7 +1185,7 @@ def process_file_2170(fp, fm, fh, fa, magic, callback=None):
     assert magic == 0x1170 or magic > 0x2169
 
     if callback is not None:
-        callback.start(fp.name, file_magic=fm, file_header=fh, file_activities=fa)
+        callback.start(file_magic=fm, file_header=fh, file_activities=fa)
 
     try:
         prev_rh = None
@@ -1429,11 +1452,11 @@ class ContentAction(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def start(self, name, file_magic=None, file_header=None, file_activities=None):
+    def start(self, file_magic=None, file_header=None, file_activities=None):
         """
-        Start the handling of a binary data file. The name of the file is
-        given, along with the file_magic record (optional), the file_header
-        record (required), and the file activities (optional).
+        Start the handling of a binary data file. The caller optionally
+        provides the file_magic record, always provides the required
+        file_header record, and optionally provides the file activities.
         """
         pass
 
