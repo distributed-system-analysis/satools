@@ -1,0 +1,10 @@
+{
+	"sysstat": {
+		"sysdata-version": 2.5,
+		"hosts": [
+			{
+				"nodename": "abcde.fghi.jkl.mno.pqr.stuvwx.com"
+			}
+		]
+	}
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sysstat PUBLIC "DTD v2.16 sysstat //EN"
+"http://pagesperso-orange.fr/sebastien.godard/sysstat-2.16.dtd">
+<sysstat>
+	<sysdata-version>2.16</sysdata-version>
+	<host nodename="abcde.fgh.ijklmn.opq">
+		<sysname>Linux</sysname>
+		<release>3.14.5-200.fc20.x86_64</release>
+		<machine>x86_64</machine>
+		<number-of-cpus>4</number-of-cpus>
+		<file-date>2014-06-16</file-date>
+		<restarts>
+			<boot date="2014-06-16" time="22:29:57" utc="1"/>
+			<boot date="2014-06-16" time="22:33:28" utc="1"/>
+			<boot date="2014-06-16" time="22:36:43" utc="1"/>
+		</restarts>
+		<comments>
+			<comment date="2014-06-16" time="22:27:11" utc="1" com="A test comment 0"/>
+			<comment date="2014-06-16" time="22:27:17" utc="1" com="A test comment 1"/>
+			<comment date="2014-06-16" time="22:27:21" utc="1" com="A test comment 3"/>
+			<comment date="2014-06-16" time="22:35:04" utc="1" com="one more restart coming ..."/>
+		</comments>
+	</host>
+</sysstat>

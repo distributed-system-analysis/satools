@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sysstat PUBLIC "DTD v2.16 sysstat //EN"
+"http://pagesperso-orange.fr/sebastien.godard/sysstat-2.16.dtd">
+<sysstat>
+	<sysdata-version>2.16</sysdata-version>
+	<host nodename="abcde.fgh.ijklmn.opq">
+		<sysname>Linux</sysname>
+		<release>3.14.5-200.fc20.x86_64</release>
+		<machine>x86_64</machine>
+		<number-of-cpus>4</number-of-cpus>
+		<file-date>2014-06-16</file-date>
+		<statistics>
+			<timestamp date="2014-06-16" time="04:00:11" utc="1" interval="10">
+				<disk per="second">
+					<disk-device dev="dev8-0" tps="3.30" rd_sec="0.00" wr_sec="44.80" avgrq-sz="13.58" avgqu-sz="0.02" await="7.55" svctm="2.67" util-percent="0.88"/>
+					<disk-device dev="dev8-1" tps="0.00" rd_sec="0.00" wr_sec="0.00" avgrq-sz="0.00" avgqu-sz="0.00" await="0.00" svctm="0.00" util-percent="0.00"/>
+					<disk-device dev="dev8-2" tps="3.10" rd_sec="0.00" wr_sec="44.80" avgrq-sz="14.45" avgqu-sz="0.02" await="6.00" svctm="0.81" util-percent="0.25"/>
+					<disk-device dev="dev253-0" tps="0.00" rd_sec="0.00" wr_sec="0.00" avgrq-sz="0.00" avgqu-sz="0.00" await="0.00" svctm="0.00" util-percent="0.00"/>
+					<disk-device dev="dev253-1" tps="4.80" rd_sec="0.00" wr_sec="38.40" avgrq-sz="8.00" avgqu-sz="0.03" await="5.62" svctm="1.13" util-percent="0.54"/>
+					<disk-device dev="dev253-2" tps="0.80" rd_sec="0.00" wr_sec="6.40" avgrq-sz="8.00" avgqu-sz="0.00" await="4.25" svctm="4.25" util-percent="0.34"/>
+					<disk-device dev="dev253-3" tps="0.00" rd_sec="0.00" wr_sec="0.00" avgrq-sz="0.00" avgqu-sz="0.00" await="0.00" svctm="0.00" util-percent="0.00"/>
+				</disk>
+			</timestamp>
+		</statistics>
+	</host>
+</sysstat>

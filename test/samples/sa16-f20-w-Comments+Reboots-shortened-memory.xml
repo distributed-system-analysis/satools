@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sysstat PUBLIC "DTD v2.16 sysstat //EN"
+"http://pagesperso-orange.fr/sebastien.godard/sysstat-2.16.dtd">
+<sysstat>
+	<sysdata-version>2.16</sysdata-version>
+	<host nodename="abcde.fgh.ijklmn.opq">
+		<sysname>Linux</sysname>
+		<release>3.14.5-200.fc20.x86_64</release>
+		<machine>x86_64</machine>
+		<number-of-cpus>4</number-of-cpus>
+		<file-date>2014-06-16</file-date>
+		<statistics>
+			<timestamp date="2014-06-16" time="04:00:11" utc="1" interval="10">
+				<memory per="second" unit="kB">
+					<memfree>977604</memfree>
+					<memused>7079400</memused>
+					<memused-percent>87.87</memused-percent>
+					<buffers>263272</buffers>
+					<cached>2781348</cached>
+					<commit>9935216</commit>
+					<commit-percent>81.53</commit-percent>
+					<active>4060132</active>
+					<inactive>2218624</inactive>
+					<dirty>664</dirty>
+					<swpfree>4047824</swpfree>
+					<swpused>80940</swpused>
+					<swpused-percent>1.96</swpused-percent>
+					<swpcad>2976</swpcad>
+					<swpcad-percent>3.68</swpcad-percent>
+					<frmpg>0.50</frmpg>
+					<bufpg>0.10</bufpg>
+					<campg>3.10</campg>
+				</memory>
+			</timestamp>
+		</statistics>
+	</host>
+</sysstat>

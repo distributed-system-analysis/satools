@@ -1,0 +1,27 @@
+{
+	"sysstat": {
+		"sysdata-version": 2.16,
+		"hosts": [
+			{
+				"nodename": "abcde.fgh.ijklmn.opq",
+				"sysname": "Linux",
+				"release": "3.14.5-200.fc20.x86_64",
+				"machine": "x86_64",
+				"number-of-cpus": 4,
+				"file-date": "2014-06-16",
+				"statistics": [
+					{
+						"timestamp": {"date": "2014-06-16", "utc": 1, "interval": 10, "time": "04:00:11"},
+						"cpu-load-all": [
+							{"soft": 0.23, "guest": 0.00, "gnice": 0.00, "iowait": 0.20, "sys": 1.23, "idle": 95.61, "usr": 2.58, "irq": 0.15, "steal": 0.00, "cpu": "all", "nice": 0.00},
+							{"soft": 0.70, "guest": 0.00, "gnice": 0.00, "iowait": 0.80, "sys": 0.90, "idle": 95.48, "usr": 1.91, "irq": 0.20, "steal": 0.00, "cpu": 0, "nice": 0.00},
+							{"soft": 0.00, "guest": 0.00, "gnice": 0.00, "iowait": 0.00, "sys": 1.91, "idle": 93.48, "usr": 4.51, "irq": 0.10, "steal": 0.00, "cpu": 1, "nice": 0.00},
+							{"soft": 0.00, "guest": 0.00, "gnice": 0.00, "iowait": 0.00, "sys": 0.70, "idle": 97.69, "usr": 1.51, "irq": 0.10, "steal": 0.00, "cpu": 2, "nice": 0.00},
+							{"soft": 0.10, "guest": 0.00, "gnice": 0.00, "iowait": 0.00, "sys": 1.30, "idle": 96.09, "usr": 2.41, "irq": 0.10, "steal": 0.00, "cpu": 3, "nice": 0.00}
+						]
+					}
+				]
+			}
+		]
+	}
+}

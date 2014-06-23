@@ -1,0 +1,28 @@
+{
+	"sysstat": {
+		"sysdata-version": 2.16,
+		"hosts": [
+			{
+				"nodename": "abcde.fgh.ijklmn.opq",
+				"sysname": "Linux",
+				"release": "3.14.5-200.fc20.x86_64",
+				"machine": "x86_64",
+				"number-of-cpus": 4,
+				"file-date": "2014-06-16",
+				"statistics": [
+					{
+						"timestamp": {"date": "2014-06-16", "utc": 1, "interval": 10, "time": "04:00:11"},
+						"filesystems": [
+							{"Iused-percent": 10.60, "MBfsused": 17377, "fsused-percent": 34.57, "Iused": 347358, "ufsused-percent": 39.69, "fsname": "/dev/mapper/fedora-root", "MBfsfree": 32892, "Ifree": 2929442},
+							{"Iused-percent": 0.00, "MBfsused": 32, "fsused-percent": 0.68, "Iused": 3, "ufsused-percent": 0.68, "fsname": "/dev/loop1", "MBfsfree": 4726, "Ifree": 2441341},
+							{"Iused-percent": 0.35, "MBfsused": 185, "fsused-percent": 38.93, "Iused": 451, "ufsused-percent": 45.02, "fsname": "/dev/sda1", "MBfsfree": 291, "Ifree": 127565},
+							{"Iused-percent": 1.88, "MBfsused": 24630, "fsused-percent": 10.03, "Iused": 300723, "ufsused-percent": 15.12, "fsname": "/dev/mapper/fedora-home", "MBfsfree": 220833, "Ifree": 15673677},
+							{"Iused-percent": 755597903192239.62, "MBfsused": 32, "fsused-percent": 0.68, "Iused": 18446744073709551583, "ufsused-percent": 0.68, "fsname": "/dev/loop0", "MBfsfree": 4726, "Ifree": 2441377},
+							{"Iused-percent": 10.60, "MBfsused": 17377, "fsused-percent": 34.57, "Iused": 347358, "ufsused-percent": 39.69, "fsname": "/dev/mapper/fedora-root", "MBfsfree": 32892, "Ifree": 2929442}
+						]
+					}
+				]
+			}
+		]
+	}
+}

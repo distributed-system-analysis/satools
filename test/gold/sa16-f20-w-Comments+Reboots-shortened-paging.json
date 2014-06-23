@@ -1,0 +1,21 @@
+{
+	"sysstat": {
+		"sysdata-version": 2.16,
+		"hosts": [
+			{
+				"nodename": "abcde.fgh.ijklmn.opq",
+				"sysname": "Linux",
+				"release": "3.14.5-200.fc20.x86_64",
+				"machine": "x86_64",
+				"number-of-cpus": 4,
+				"file-date": "2014-06-16",
+				"statistics": [
+					{
+						"timestamp": {"date": "2014-06-16", "utc": 1, "interval": 10, "time": "04:00:11"},
+						"paging": {"majflt": 0.00, "vmeff-percent": 0.00, "fault": 3914.10, "pgpgin": 0.00, "pgpgout": 22.40, "pgscank": 0.00, "pgsteal": 0.00, "pgscand": 0.00, "pgfree": 1077.50}
+					}
+				]
+			}
+		]
+	}
+}

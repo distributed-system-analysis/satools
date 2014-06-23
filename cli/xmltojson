@@ -75,7 +75,7 @@ class SysStatParse(object):
     _valid_states = set(('START', 'sysstat', 'host', 'statistics', 'timestamp',
                          'cpu-load-all', 'io', 'memory', 'hugepages', 'kernel',
                          'serial', 'power-management', 'disk', 'network',
-                         'interrupts', 'int-global', 'int-proc',
+                         'interrupts', 'int-global', 'int-proc', 'filesystems',
                          'cpu-frequency', 'fan-speed', 'temperature',
                          'usb-devices', 'restarts', 'comments'))
 
@@ -92,26 +92,42 @@ class SysStatParse(object):
         self.net_edevs = []
         self.net_device_iface = None
         self.data_buf = ''
+        self.data_stack = []
+        self.saved = {}
 
     def _push(self, state=None, noindent=False):
-        self.stack.append((self.indent_lvl, self._indent_prefix, self.item_cnt, self.state))
+        self.stack.append((self.indent_lvl, self._indent_prefix, self.item_cnt, self.saved, self.state))
         if noindent:
             pass
         else:
             self.indent_lvl += 1
             self._indent_prefix = ('\t' * self.indent_lvl)
             self.item_cnt = 0
+        self.saved = {}
         self.state = state if state is not None else self.state
 
     def _pop(self):
-        self.indent_lvl, self._indent_prefix, self.item_cnt, self.state = self.stack.pop()
+        self.indent_lvl, self._indent_prefix, self.item_cnt, self.saved, self.state = self.stack.pop()
 
-    def _finish_prev(self):
+    def _finish_prevnl(self):
         return ',\n' if self.item_cnt > 0 else '\n'
 
-    def _emit_k_v(self, k, v):
-        self.of.write(self._finish_prev() + self._indent_prefix + '"' + k + '": ' + cvtnum(v))
+    def _finish_prevsp(self):
+        return ', ' if self.item_cnt > 0 else ''
+
+    def _emit_k_v_nl(self, k, v):
+        self.of.write(self._finish_prevnl() + self._indent_prefix + '"' + k + '": ' + cvtnum(v))
         self.item_cnt += 1
+
+    def _emit_k_v(self, k, v):
+        self.of.write(self._finish_prevsp() + '"' + k + '": ' + cvtnum(v))
+        self.item_cnt += 1
+
+    def _emit_attrs_nl(self, attrs):
+        for k, v in attrs.items():
+            if k == "per" and v == "second":
+                continue
+            self._emit_k_v_nl(k, v)
 
     def _emit_attrs(self, attrs):
         for k, v in attrs.items():
@@ -120,11 +136,11 @@ class SysStatParse(object):
             self._emit_k_v(k, v)
 
     def _data_element_no_name(self, attrs):
-        self.of.write(self._finish_prev() + self._indent_prefix + '{')
+        self.of.write(self._finish_prevnl() + self._indent_prefix + '{')
         self._push()
         self._emit_attrs(attrs)
         self._pop()
-        self.of.write('\n' + self._indent_prefix + '}')
+        self.of.write('}')
         self.item_cnt += 1
 
     def _data_element(self, name, attrs):
@@ -134,11 +150,11 @@ class SysStatParse(object):
             # character data
             self.curr_element = name
         else:
-            self.of.write(self._finish_prev() + self._indent_prefix + '"' + name + '": {')
+            self.of.write(self._finish_prevnl() + self._indent_prefix + '"' + name + '": {')
             self._push()
             self._emit_attrs(attrs)
             self._pop()
-            self.of.write('\n' + self._indent_prefix + '}')
+            self.of.write('}')
             self.item_cnt += 1
 
     def _error(self, msg, *args):
@@ -152,6 +168,8 @@ class SysStatParse(object):
     def start_element(self, name, attrs):
         #import pdb; pdb.set_trace()
         #assert self.state in self._valid_states
+        self.data_stack.append(self.data_buf)
+        self.data_buf = ''
         if self.state == 'int-global':
             if name == 'irq':
                 self._data_element_no_name(attrs)
@@ -164,15 +182,41 @@ class SysStatParse(object):
                 self._error("Ignoring start for element: %s, attrs: %r", name, attrs)
         elif self.state == 'interrupts':
             if name == 'int-global':
-                self.of.write('%s%s"%s": [' % (self._finish_prev(), self._indent_prefix, 'interrupts'))
+                self.of.write('%s%s"%s": [' % (self._finish_prevnl(), self._indent_prefix, 'interrupts'))
                 self._push(state=name)
             elif name == 'int-proc':
-                self.of.write('%s%s"%s": [' % (self._finish_prev(), self._indent_prefix, 'interrupts-processor'))
+                self.of.write('%s%s"%s": [' % (self._finish_prevnl(), self._indent_prefix, 'interrupts-processor'))
                 self._push(state=name)
             else:
                 self._error("Ignoring start for element: %s, attrs: %r", name, attrs)
         elif self.state in ('cpu-load-all', 'serial', 'disk'):
             if name in ('cpu', 'disk-device', 'tty'):
+                if name == 'cpu':
+                    try:
+                        attrs['cpu'] = attrs['number']
+                    except KeyError:
+                        pass
+                    else:
+                        del attrs['number']
+                    try:
+                        attrs['usr'] = attrs['user']
+                    except KeyError:
+                        pass
+                    else:
+                        del attrs['user']
+                    try:
+                        attrs['sys'] = attrs['system']
+                    except KeyError:
+                        pass
+                    else:
+                        del attrs['system']
+                elif name == 'disk-device':
+                    try:
+                        attrs['disk-device'] = attrs['dev']
+                    except KeyError:
+                        pass
+                    else:
+                        del attrs['dev']
                 self._data_element_no_name(attrs)
             else:
                 self._error("Ignoring start for element: %s, attrs: %r", name, attrs)
@@ -193,25 +237,27 @@ class SysStatParse(object):
                 self._data_element(name, attrs)
         elif self.state == 'power-management':
             if name in ('cpu-frequency', 'fan-speed', 'temperature', 'usb-devices'):
-                self.of.write('%s%s"%s": [' % (self._finish_prev(), self._indent_prefix, name))
+                self.of.write('%s%s"%s": [' % (self._finish_prevnl(), self._indent_prefix, name))
                 self.item_cnt += 1
                 self._push(state=name)
             else:
                 self._error("Ignoring start for element: %s, attrs: %r", name, attrs)
-        elif self.state in ('cpu-frequency', 'fan-speed', 'temperature', 'usb-devices'):
+        elif self.state in ('cpu-frequency', 'fan-speed', 'temperature', 'usb-devices', 'filesystems'):
             self._data_element_no_name(attrs)
         elif self.state == 'timestamp':
-            if name in ('cpu-load-all', 'cpu-load', 'disk', 'serial'):
+            if name in ('cpu-load-all', 'cpu-load', 'disk', 'serial', 'filesystems'):
                 if name == 'cpu-load':
                     # Make sysdata-version 1.0 look a bit more like 2.x
                     name = 'cpu-load-all'
-                self.of.write('%s%s"%s": [' % (self._finish_prev(), self._indent_prefix, name))
+                self.of.write('%s%s"%s": [' % (self._finish_prevnl(), self._indent_prefix, name))
                 self._push(state=name)
             elif name == 'interrupts':
                 self._push(state=name, noindent=True)
             elif name in ('io', 'memory', 'network', 'hugepages', 'power-management'):
-                self.of.write('%s%s"%s": {' % (self._finish_prev(), self._indent_prefix, name))
+                self.of.write('%s%s"%s": {' % (self._finish_prevnl(), self._indent_prefix, name))
                 self._push(state=name)
+                if name == 'io':
+                    self.of.write('\n%s' % self._indent_prefix)
                 if self.state == 'network':
                     self.net_devs = []
                     self.net_edevs = []
@@ -225,15 +271,17 @@ class SysStatParse(object):
                     self._data_element(name, attrs)
                 else:
                     # Pre sysstat 10.1.x kernel has sub elements with attributes
-                    self.of.write('%s%s"%s": {' % (self._finish_prev(), self._indent_prefix, name))
+                    self.of.write('%s%s"%s": {' % (self._finish_prevnl(), self._indent_prefix, name))
                     self._push(state=name)
-            elif name in ('process-and-context-switch', 'processes', 'context-switch', 'swap-pages', 'paging', 'queue'):
+            elif name in ('process-and-context-switch', 'swap-pages', 'paging', 'queue'):
                 self._data_element(name, attrs)
+            elif name in ('processes', 'context-switch'):
+                self.saved[name] = attrs
             else:
                 self._error("Ignoring start for element: %s, attrs: %r", name, attrs)
         elif self.state == 'statistics':
             if name == 'timestamp':
-                self.of.write('%s%s{' % (self._finish_prev(), self._indent_prefix))
+                self.of.write('%s%s{' % (self._finish_prevnl(), self._indent_prefix))
                 self.item_cnt += 1
                 self._push(state='timestamp')
                 self._data_element(name, attrs)
@@ -246,22 +294,20 @@ class SysStatParse(object):
                 self._error("Ignoring start for element: %s, attrs: %r", name, attrs)
         elif self.state == 'host':
             if name in ('statistics', 'restarts', 'comments'):
-                self.of.write('%s%s"%s": [' % (self._finish_prev(), self._indent_prefix, name))
+                self.of.write('%s%s"%s": [' % (self._finish_prevnl(), self._indent_prefix, name))
                 self._push(state=name)
             elif name in ('sysname', 'release', 'machine', 'number-of-cpus', 'file-date'):
-                # Add any other elements we find
                 self._data_element(name, attrs)
             else:
                 self._error("Ignoring start for element: %s, attrs: %r", name, attrs)
         elif self.state == 'sysstat':
             if name == 'host':
-                self.of.write('%s%s"hosts": [\n' % (self._finish_prev(), self._indent_prefix))
+                self.of.write('%s%s"hosts": [\n' % (self._finish_prevnl(), self._indent_prefix))
                 self._push(state='host')
                 self.of.write('%s{' % (self._indent_prefix))
                 self._push()
-                self._emit_attrs(attrs)
-            elif name in ('sysdata-version'):
-                # Add any other elements we find
+                self._emit_attrs_nl(attrs)
+            elif name == 'sysdata-version':
                 self._data_element(name, attrs)
             else:
                 self._error("Ignoring start for element: %s, attrs: %r", name, attrs)
@@ -276,7 +322,7 @@ class SysStatParse(object):
             self._error("Unexpected state: %s", self.state)
 
     def _handle_net_devs(self, ndevs, name):
-        self.of.write('%s%s"%s": [' % (self._finish_prev(), self._indent_prefix, name))
+        self.of.write('%s%s"%s": [' % (self._finish_prevnl(), self._indent_prefix, name))
         self._push()
         for nd in ndevs:
             self._data_element_no_name(nd)
@@ -300,7 +346,9 @@ class SysStatParse(object):
                 curr_item_cnt = self.item_cnt
                 self._pop()
                 self.of.write('%s]' % ('' if curr_item_cnt == 0 else ('\n' + self._indent_prefix)))
-        elif self.state in ('statistics', 'restarts', 'comments', 'serial', 'disk', 'cpu-frequency', 'fan-speed', 'temperature', 'usb-devices'):
+        elif self.state in ('statistics', 'restarts', 'comments', 'serial',
+                            'disk', 'cpu-frequency', 'fan-speed',
+                            'temperature', 'usb-devices', 'filesystems'):
             if name == self.state:
                 curr_item_cnt = self.item_cnt
                 self._pop()
@@ -320,8 +368,32 @@ class SysStatParse(object):
                     self.net_device_iface = None
                 self._pop()
                 self.of.write('\n%s}' % (self._indent_prefix))
-        elif self.state in ('timestamp', 'io', 'memory', 'kernel', 'hugepages', 'power-management'):
+        elif self.state in ('memory', 'kernel', 'hugepages'):
             if name == self.state:
+                self._pop()
+                self.of.write('}')
+            elif self.state == 'kernel':
+                if name == 'file-sz' and self.curr_element == 'file-sz':
+                    self.curr_element = name = 'file-nr'
+                elif name == 'inode-sz' and self.curr_element == 'inode-sz':
+                    self.curr_element = name = 'inode-nr'
+        elif self.state in ('timestamp', 'io', 'power-management'):
+            if name == self.state:
+                if name == 'timestamp':
+                    try:
+                        pattrs = self.saved['processes']
+                    except KeyError:
+                        combined_attrs = {}
+                    else:
+                        combined_attrs = pattrs
+                    try:
+                        cattrs = self.saved['context-switch']
+                    except KeyError:
+                        pass
+                    else:
+                        combined_attrs.update(cattrs)
+                    if combined_attrs:
+                        self._data_element('process-and-context-switch', combined_attrs)
                 self._pop()
                 self.of.write('\n%s}' % (self._indent_prefix))
         elif self.state == 'host':
@@ -340,34 +412,50 @@ class SysStatParse(object):
             self._error("Unexpected state: %s", self.state)
 
         if self.curr_element != name:
-            data = self.data_buf.strip()
+            data = self.data_buf
             if data != '':
                 import pdb; pdb.set_trace()
                 pass
-            self.data_buf = ''
+            self.data_buf = self.data_stack.pop()
             return
-        data = self.data_buf.strip()
+        data = self.data_buf
         if data:
-            self._emit_k_v(name, data)
+            if self.state in ('host', 'sysstat'):
+                self._emit_k_v_nl(name, data)
+            else:
+                self._emit_k_v(name, data)
         else:
             import pdb; pdb.set_trace()
             pass
         self.curr_element = None
-        self.data_buf = ''
+        self.data_buf = self.data_stack.pop()
 
     def char_data(self, data):
         # Simply accumulate all the data given. This method may be called more
         # than once between start_element and end_element invocations.
-        self.data_buf += data
+        self.data_buf += data.strip()
 
 
-fname = os.path.abspath(sys.argv[1])
-dname = os.path.abspath(sys.argv[2])
-assert os.path.isdir(dname)
-bname = os.path.basename(fname)
-if not bname.endswith('.xml'):
-    print >>sys.stderr, "Are you sure this is an xml file? (%s)" % fname
+try:
+    fname = os.path.abspath(sys.argv[1])
+except IndexError:
+    print >>sys.stderr, "We need a XML file to process"
     sys.exit(1)
+else:
+    bname = os.path.basename(fname)
+    if not bname.endswith('.xml'):
+        print >>sys.stderr, "Are you sure this is an XML file? (%s)" % fname
+        sys.exit(1)
+
+try:
+    dname = os.path.abspath(sys.argv[2])
+except IndexError:
+    dname = os.path.dirname(fname)
+else:
+    if not os.path.isdir(dname):
+        print >>sys.stderr, "Expected a valid target directory (%s)" % dname
+        sys.exit(1)
+
 jname = os.path.join(dname, bname.replace('.xml', '.json'))
 
 with open(jname, "w+b", 1 * 1024 * 1024) as of:

@@ -1,0 +1,26 @@
+{
+	"sysstat": {
+		"sysdata-version": 2.16,
+		"hosts": [
+			{
+				"nodename": "abcde.fgh.ijklmn.opq",
+				"sysname": "Linux",
+				"release": "3.14.5-200.fc20.x86_64",
+				"machine": "x86_64",
+				"number-of-cpus": 4,
+				"file-date": "2014-06-16",
+				"restarts": [
+					{"date": "2014-06-16", "utc": 1, "time": "22:29:57"},
+					{"date": "2014-06-16", "utc": 1, "time": "22:33:28"},
+					{"date": "2014-06-16", "utc": 1, "time": "22:36:43"}
+				],
+				"comments": [
+					{"date": "2014-06-16", "utc": 1, "com": "A test comment 0", "time": "22:27:11"},
+					{"date": "2014-06-16", "utc": 1, "com": "A test comment 1", "time": "22:27:17"},
+					{"date": "2014-06-16", "utc": 1, "com": "A test comment 3", "time": "22:27:21"},
+					{"date": "2014-06-16", "utc": 1, "com": "one more restart coming ...", "time": "22:35:04"}
+				]
+			}
+		]
+	}
+}

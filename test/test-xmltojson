@@ -1,0 +1,21 @@
+#!/bin/bash
+
+BINDIR=$(realpath $(dirname $(realpath $0))/../cli)
+
+rm -rf /var/tmp/test-xmltojson-*
+TESTDIR=/var/tmp/test-xmltojson-$$
+mkdir -p $TESTDIR/samples $TESTDIR/gold $TESTDIR/output
+
+cp samples/*.xml.xz samples/*.xml $TESTDIR/samples/
+unxz $TESTDIR/samples/*.xml.xz
+
+cp gold/*.json.xz gold/*.json $TESTDIR/gold/
+unxz $TESTDIR/gold/*.json.xz
+
+$(ls -1Ht *.tar.xz *.tar.bz2 2> /dev/null | sed -E s/\.tar\..+//)
+
+cd $TESTDIR/samples
+for i in $(ls -1 *.xml 2> /dev/null | sed -E s/\.xml// ) ; do
+    $BINDIR/xmltojson $i.xml $TESTDIR/output/
+    diff -cw $TESTDIR/gold/$i.json $TESTDIR/output/$i.json
+done

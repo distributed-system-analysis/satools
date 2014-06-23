@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sysstat PUBLIC "DTD v2.16 sysstat //EN"
+"http://pagesperso-orange.fr/sebastien.godard/sysstat-2.16.dtd">
+<sysstat>
+	<sysdata-version>2.16</sysdata-version>
+	<host nodename="abcde.fgh.ijklmn.opq">
+		<sysname>Linux</sysname>
+		<release>3.14.5-200.fc20.x86_64</release>
+		<machine>x86_64</machine>
+		<number-of-cpus>4</number-of-cpus>
+		<file-date>2014-06-16</file-date>
+		<statistics>
+			<timestamp date="2014-06-16" time="04:00:11" utc="1" interval="10">
+				<filesystems>
+					<filesystem fsname="/dev/mapper/fedora-root" MBfsfree="32892" MBfsused="17377" fsused-percent="34.57" ufsused-percent="39.69" Ifree="2929442" Iused="347358" Iused-percent="10.60"/>
+					<filesystem fsname="/dev/loop1" MBfsfree="4726" MBfsused="32" fsused-percent="0.68" ufsused-percent="0.68" Ifree="2441341" Iused="3" Iused-percent="0.00"/>
+					<filesystem fsname="/dev/sda1" MBfsfree="291" MBfsused="185" fsused-percent="38.93" ufsused-percent="45.02" Ifree="127565" Iused="451" Iused-percent="0.35"/>
+					<filesystem fsname="/dev/mapper/fedora-home" MBfsfree="220833" MBfsused="24630" fsused-percent="10.03" ufsused-percent="15.12" Ifree="15673677" Iused="300723" Iused-percent="1.88"/>
+					<filesystem fsname="/dev/loop0" MBfsfree="4726" MBfsused="32" fsused-percent="0.68" ufsused-percent="0.68" Ifree="2441377" Iused="18446744073709551583" Iused-percent="755597903192239.62"/>
+					<filesystem fsname="/dev/mapper/fedora-root" MBfsfree="32892" MBfsused="17377" fsused-percent="34.57" ufsused-percent="39.69" Ifree="2929442" Iused="347358" Iused-percent="10.60"/>
+				</filesystems>
+			</timestamp>
+		</statistics>
+	</host>
+</sysstat>

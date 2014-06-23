@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sysstat PUBLIC "DTD v2.16 sysstat //EN"
+"http://pagesperso-orange.fr/sebastien.godard/sysstat-2.16.dtd">
+<sysstat>
+	<sysdata-version>2.16</sysdata-version>
+	<host nodename="abcde.fgh.ijklmn.opq">
+		<sysname>Linux</sysname>
+		<release>3.14.5-200.fc20.x86_64</release>
+		<machine>x86_64</machine>
+		<number-of-cpus>4</number-of-cpus>
+		<file-date>2014-06-16</file-date>
+		<statistics>
+			<timestamp date="2014-06-16" time="04:00:11" utc="1" interval="10">
+				<power-management>
+					<cpu-frequency unit="MHz">
+						<cpufreq number="all" frequency="818.01"/>
+						<cpufreq number="0" frequency="870.75"/>
+						<cpufreq number="1" frequency="786.37"/>
+						<cpufreq number="2" frequency="828.56"/>
+						<cpufreq number="3" frequency="786.37"/>
+					</cpu-frequency>
+					<fan-speed unit="rpm">
+						<fan number="1" rpm="0" drpm="0" device="thinkpad-isa-0000"/>
+					</fan-speed>
+					<temperature unit="degree Celsius">
+						<temp number="1" degC="44.00" percent-temp="0.00" device="acpitz-virtual-0"/>
+						<temp number="2" degC="47.00" percent-temp="54.65" device="coretemp-isa-0000"/>
+						<temp number="3" degC="45.00" percent-temp="52.33" device="coretemp-isa-0000"/>
+						<temp number="4" degC="47.00" percent-temp="54.65" device="coretemp-isa-0000"/>
+					</temperature>
+					<usb-devices>
+						<usb bus_number="1" idvendor="8087" idprod="24" maxpower="0" manufact="" product=""/>
+						<usb bus_number="2" idvendor="8087" idprod="24" maxpower="0" manufact="" product=""/>
+						<usb bus_number="1" idvendor="1050" idprod="10" maxpower="60" manufact="Yubico" product="Yubico Yubikey II"/>
+						<usb bus_number="1" idvendor="a5c" idprod="217f" maxpower="0" manufact="Broadcom Corp" product="Broadcom Bluetooth Device"/>
+						<usb bus_number="1" idvendor="17ef" idprod="100a" maxpower="4" manufact="" product=""/>
+						<usb bus_number="1" idvendor="4f2" idprod="b217" maxpower="400" manufact="Ricoh Company Ltd." product="Integrated Camera"/>
+					</usb-devices>
+				</power-management>
+			</timestamp>
+		</statistics>
+	</host>
+</sysstat>

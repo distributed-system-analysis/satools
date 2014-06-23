@@ -1,0 +1,21 @@
+{
+	"sysstat": {
+		"sysdata-version": 2.16,
+		"hosts": [
+			{
+				"nodename": "abcde.fgh.ijklmn.opq",
+				"sysname": "Linux",
+				"release": "3.14.5-200.fc20.x86_64",
+				"machine": "x86_64",
+				"number-of-cpus": 4,
+				"file-date": "2014-06-16",
+				"statistics": [
+					{
+						"timestamp": {"date": "2014-06-16", "utc": 1, "interval": 10, "time": "04:00:11"},
+						"memory": {"memfree": 977604, "memused": 7079400, "memused-percent": 87.87, "buffers": 263272, "cached": 2781348, "commit": 9935216, "commit-percent": 81.53, "active": 4060132, "inactive": 2218624, "dirty": 664, "swpfree": 4047824, "swpused": 80940, "swpused-percent": 1.96, "swpcad": 2976, "swpcad-percent": 3.68, "frmpg": 0.50, "bufpg": 0.10, "campg": 3.10}
+					}
+				]
+			}
+		]
+	}
+}

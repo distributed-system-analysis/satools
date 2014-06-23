@@ -1,0 +1,25 @@
+{
+	"sysstat": {
+		"sysdata-version": 2.16,
+		"hosts": [
+			{
+				"nodename": "abcde.fgh.ijklmn.opq",
+				"sysname": "Linux",
+				"release": "3.14.5-200.fc20.x86_64",
+				"machine": "x86_64",
+				"number-of-cpus": 4,
+				"file-date": "2014-06-16",
+				"statistics": [
+					{
+						"timestamp": {"date": "2014-06-16", "utc": 1, "interval": 10, "time": "04:00:11"},
+						"io": {
+							"tps": 3.30,
+							"io-reads": {"rtps": 0.00, "bread": 0.00},
+							"io-writes": {"bwrtn": 44.80, "wtps": 3.30}
+						}
+					}
+				]
+			}
+		]
+	}
+}

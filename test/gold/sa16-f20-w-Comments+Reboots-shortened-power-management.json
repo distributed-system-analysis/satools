@@ -1,0 +1,46 @@
+{
+	"sysstat": {
+		"sysdata-version": 2.16,
+		"hosts": [
+			{
+				"nodename": "abcde.fgh.ijklmn.opq",
+				"sysname": "Linux",
+				"release": "3.14.5-200.fc20.x86_64",
+				"machine": "x86_64",
+				"number-of-cpus": 4,
+				"file-date": "2014-06-16",
+				"statistics": [
+					{
+						"timestamp": {"date": "2014-06-16", "utc": 1, "interval": 10, "time": "04:00:11"},
+						"power-management": {
+							"cpu-frequency": [
+								{"frequency": 818.01, "number": "all"},
+								{"frequency": 870.75, "number": 0},
+								{"frequency": 786.37, "number": 1},
+								{"frequency": 828.56, "number": 2},
+								{"frequency": 786.37, "number": 3}
+							],
+							"fan-speed": [
+								{"device": "thinkpad-isa-0000", "rpm": 0, "number": 1, "drpm": 0}
+							],
+							"temperature": [
+								{"device": "acpitz-virtual-0", "percent-temp": 0.00, "degC": 44.00, "number": 1},
+								{"device": "coretemp-isa-0000", "percent-temp": 54.65, "degC": 47.00, "number": 2},
+								{"device": "coretemp-isa-0000", "percent-temp": 52.33, "degC": 45.00, "number": 3},
+								{"device": "coretemp-isa-0000", "percent-temp": 54.65, "degC": 47.00, "number": 4}
+							],
+							"usb-devices": [
+								{"idvendor": 8087, "product": "", "manufact": "", "bus_number": 1, "idprod": 24, "maxpower": 0},
+								{"idvendor": 8087, "product": "", "manufact": "", "bus_number": 2, "idprod": 24, "maxpower": 0},
+								{"idvendor": 1050, "product": "Yubico Yubikey II", "manufact": "Yubico", "bus_number": 1, "idprod": 10, "maxpower": 60},
+								{"idvendor": "a5c", "product": "Broadcom Bluetooth Device", "manufact": "Broadcom Corp", "bus_number": 1, "idprod": "217f", "maxpower": 0},
+								{"idvendor": "17ef", "product": "", "manufact": "", "bus_number": 1, "idprod": "100a", "maxpower": 4},
+								{"idvendor": "4f2", "product": "Integrated Camera", "manufact": "Ricoh Company Ltd.", "bus_number": 1, "idprod": "b217", "maxpower": 400}
+							]
+						}
+					}
+				]
+			}
+		]
+	}
+}
