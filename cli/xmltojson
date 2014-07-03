@@ -76,8 +76,8 @@ class SysStatParse(object):
                          'cpu-load-all', 'io', 'memory', 'hugepages', 'kernel',
                          'serial', 'power-management', 'disk', 'network',
                          'interrupts', 'int-global', 'int-proc', 'filesystems',
-                         'cpu-frequency', 'fan-speed', 'temperature',
-                         'usb-devices', 'restarts', 'comments'))
+                         'cpu-frequency', 'fan-speed', 'voltage-input',
+                         'temperature', 'usb-devices', 'restarts', 'comments'))
 
     def __init__(self, fname, of):
         self.fname = fname
@@ -159,15 +159,15 @@ class SysStatParse(object):
 
     def _error(self, msg, *args):
         print >>sys.stderr, msg % args
-        import pdb; pdb.set_trace()
+        if DEBUG:
+            import pdb; pdb.set_trace()
         print repr(self.stack)
 
     def _warn(self, msg, *args):
         print >>sys.stderr, msg % args
 
     def start_element(self, name, attrs):
-        #import pdb; pdb.set_trace()
-        #assert self.state in self._valid_states
+        assert self.state in self._valid_states
         self.data_stack.append(self.data_buf)
         self.data_buf = ''
         if self.state == 'int-global':
@@ -220,8 +220,9 @@ class SysStatParse(object):
                 self._data_element_no_name(attrs)
             else:
                 self._error("Ignoring start for element: %s, attrs: %r", name, attrs)
-        elif self.state in ('io', 'memory', 'kernel', 'hugepages'):
-            self._data_element(name, attrs)
+        elif self.state in ('cpu-frequency', 'fan-speed', 'temperature',
+                            'voltage-input', 'usb-devices', 'filesystems'):
+            self._data_element_no_name(attrs)
         elif self.state == 'network':
             if name == 'net-dev':
                 if self.net_device_iface is not None:
@@ -235,15 +236,16 @@ class SysStatParse(object):
                 self.net_device_iface = attrs['iface']
             else:
                 self._data_element(name, attrs)
+        elif self.state in ('io', 'memory', 'kernel', 'hugepages'):
+            self._data_element(name, attrs)
         elif self.state == 'power-management':
-            if name in ('cpu-frequency', 'fan-speed', 'temperature', 'usb-devices'):
+            if name in ('cpu-frequency', 'fan-speed', 'temperature',
+                        'voltage-input', 'usb-devices'):
                 self.of.write('%s%s"%s": [' % (self._finish_prevnl(), self._indent_prefix, name))
                 self.item_cnt += 1
                 self._push(state=name)
             else:
                 self._error("Ignoring start for element: %s, attrs: %r", name, attrs)
-        elif self.state in ('cpu-frequency', 'fan-speed', 'temperature', 'usb-devices', 'filesystems'):
-            self._data_element_no_name(attrs)
         elif self.state == 'timestamp':
             if name in ('cpu-load-all', 'cpu-load', 'disk', 'serial', 'filesystems'):
                 if name == 'cpu-load':
@@ -331,8 +333,7 @@ class SysStatParse(object):
         self.of.write('%s]' % ('' if curr_item_cnt == 0 else ('\n' + self._indent_prefix)))
 
     def end_element(self, name):
-        #import pdb; pdb.set_trace()
-        #assert self.state in self._valid_states
+        assert self.state in self._valid_states
         if self.state in ('int-global', 'int-proc'):
             if name == self.state:
                 curr_item_cnt = self.item_cnt
@@ -348,7 +349,8 @@ class SysStatParse(object):
                 self.of.write('%s]' % ('' if curr_item_cnt == 0 else ('\n' + self._indent_prefix)))
         elif self.state in ('statistics', 'restarts', 'comments', 'serial',
                             'disk', 'cpu-frequency', 'fan-speed',
-                            'temperature', 'usb-devices', 'filesystems'):
+                            'temperature', 'voltage-input', 'usb-devices',
+                            'filesystems'):
             if name == self.state:
                 curr_item_cnt = self.item_cnt
                 self._pop()
@@ -413,7 +415,7 @@ class SysStatParse(object):
 
         if self.curr_element != name:
             data = self.data_buf
-            if data != '':
+            if data != '' and DEBUG:
                 import pdb; pdb.set_trace()
                 pass
             self.data_buf = self.data_stack.pop()
@@ -424,7 +426,7 @@ class SysStatParse(object):
                 self._emit_k_v_nl(name, data)
             else:
                 self._emit_k_v(name, data)
-        else:
+        elif DEBUG:
             import pdb; pdb.set_trace()
             pass
         self.curr_element = None
