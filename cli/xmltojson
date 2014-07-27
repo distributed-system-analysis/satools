@@ -34,24 +34,18 @@ if PROFILE:
 
 def cvtnum(v):
     """
-    Convert a string value to an integer or a float. If the given value is
-    neither, return it quoted.
+    Return the string as is if it is an integer or a float (we only convert to
+    float since that is sufficient to see if it is a number). If the given
+    value is neither, return it quoted.
     """
     try:
-        # Attempt to consider it an int first.
-        new_v = int(v)
+        # Attempt to consider it a float first.
+        new_v = float(v)
+        num = True
     except ValueError:
-        try:
-            # Then see if it could be considered a float.
-            new_v = float(v)
-        except ValueError:
-            # Otherwise, just return it as a quoted string.
-            new_v = '"' + v + '"'
-        else:
-            new_v = v
-    else:
-        new_v = v
-    return new_v
+        # Otherwise, just return it as a quoted string.
+        num = False
+    return v, num
 
 
 class SysStatParse(object):
@@ -63,8 +57,11 @@ class SysStatParse(object):
       1. int-proc data has no mapping in the more recent sysstat versions,
          so a new key is used, "interrupts-processor" instead (note that
          int-global already maps to "interrupts")
-      2. older formats that use cpu-load element names are renamed to the
-         more recent cpu-load-all
+      2. the file-sz and inode-sz elements are renamed to file-nr and inode-nr
+         to match later output
+      3. the net-device element is not carried over
+      3. the rxbyt and txbyt net-dev values are renamed to rxkB and txkB, and
+         their values devided by 1,024 to match
 
     No attempt is made to map older element or attribute names into their more
     recent forms, e.g.
@@ -72,12 +69,12 @@ class SysStatParse(object):
       * "processes" and "context-switch" combined into the newer
         "process-and-context-switch" element
     """
-    _valid_states = set(('START', 'sysstat', 'host', 'statistics', 'timestamp',
-                         'cpu-load-all', 'io', 'memory', 'hugepages', 'kernel',
-                         'serial', 'power-management', 'disk', 'network',
-                         'interrupts', 'int-global', 'int-proc', 'filesystems',
-                         'cpu-frequency', 'fan-speed', 'voltage-input',
-                         'temperature', 'usb-devices', 'restarts', 'comments'))
+    _valid_states = set((
+        'START', 'sysstat', 'host', 'statistics', 'timestamp', 'cpu-load',
+        'cpu-load-all', 'io', 'memory', 'hugepages', 'kernel', 'serial',
+        'power-management', 'disk', 'network', 'interrupts', 'int-global',
+        'int-proc', 'filesystems', 'cpu-frequency', 'fan-speed', 'comments',
+        'voltage-input', 'temperature', 'usb-devices', 'restarts'))
 
     def __init__(self, fname, of):
         self.fname = fname
@@ -115,13 +112,25 @@ class SysStatParse(object):
     def _finish_prevsp(self):
         return ', ' if self.item_cnt > 0 else ''
 
-    def _emit_k_v_nl(self, k, v):
-        self.of.write(self._finish_prevnl() + self._indent_prefix + '"' + k + '": ' + cvtnum(v))
+    def _emit_k_v(self, fmt, fin, ind, k, v):
+        self.of.write(fmt % (fin, ind, k, v))
         self.item_cnt += 1
 
-    def _emit_k_v(self, k, v):
-        self.of.write(self._finish_prevsp() + '"' + k + '": ' + cvtnum(v))
-        self.item_cnt += 1
+    def _emit_k_v_nl(self, k, v):
+        val, num = cvtnum(v)
+        if num:
+            linefmt = '%s%s"%s": %s'
+        else:
+            linefmt = '%s%s"%s": "%s"'
+        self._emit_k_v(linefmt, self._finish_prevnl(), self._indent_prefix, k, val)
+
+    def _emit_k_v_sp(self, k, v):
+        val, num = cvtnum(v)
+        if num:
+            linefmt = '%s%s"%s": %s'
+        else:
+            linefmt = '%s%s"%s": "%s"'
+        self._emit_k_v(linefmt, self._finish_prevsp(), '', k, val)
 
     def _emit_attrs_nl(self, attrs):
         for k, v in attrs.items():
@@ -133,7 +142,7 @@ class SysStatParse(object):
         for k, v in attrs.items():
             if k == "per" and v == "second":
                 continue
-            self._emit_k_v(k, v)
+            self._emit_k_v_sp(k, v)
 
     def _data_element_no_name(self, attrs):
         self.of.write(self._finish_prevnl() + self._indent_prefix + '{')
@@ -189,34 +198,26 @@ class SysStatParse(object):
                 self._push(state=name)
             else:
                 self._error("Ignoring start for element: %s, attrs: %r", name, attrs)
-        elif self.state in ('cpu-load-all', 'serial', 'disk'):
-            if name in ('cpu', 'disk-device', 'tty'):
-                if name == 'cpu':
-                    try:
-                        attrs['cpu'] = attrs['number']
-                    except KeyError:
-                        pass
-                    else:
-                        del attrs['number']
-                    try:
-                        attrs['usr'] = attrs['user']
-                    except KeyError:
-                        pass
-                    else:
-                        del attrs['user']
-                    try:
-                        attrs['sys'] = attrs['system']
-                    except KeyError:
-                        pass
-                    else:
-                        del attrs['system']
-                elif name == 'disk-device':
-                    try:
-                        attrs['disk-device'] = attrs['dev']
-                    except KeyError:
-                        pass
-                    else:
-                        del attrs['dev']
+        elif self.state in ('cpu-load', 'cpu-load-all'):
+            if name == 'cpu':
+                try:
+                    # Matches sadf json output better
+                    attrs['cpu'] = attrs['number']
+                except KeyError:
+                    pass
+                else:
+                    del attrs['number']
+                self._data_element_no_name(attrs)
+            else:
+                self._error("Ignoring start for element: %s, attrs: %r", name, attrs)
+        elif self.state == 'disk':
+            if name == 'disk-device':
+                try:
+                    attrs['disk-device'] = attrs['dev']
+                except KeyError:
+                    pass
+                else:
+                    del attrs['dev']
                 self._data_element_no_name(attrs)
             else:
                 self._error("Ignoring start for element: %s, attrs: %r", name, attrs)
@@ -238,6 +239,11 @@ class SysStatParse(object):
                 self._data_element(name, attrs)
         elif self.state in ('io', 'memory', 'kernel', 'hugepages'):
             self._data_element(name, attrs)
+        elif self.state == 'serial':
+            if name == 'tty':
+                self._data_element_no_name(attrs)
+            else:
+                self._error("Ignoring start for element: %s, attrs: %r", name, attrs)
         elif self.state == 'power-management':
             if name in ('cpu-frequency', 'fan-speed', 'temperature',
                         'voltage-input', 'usb-devices'):
@@ -248,9 +254,6 @@ class SysStatParse(object):
                 self._error("Ignoring start for element: %s, attrs: %r", name, attrs)
         elif self.state == 'timestamp':
             if name in ('cpu-load-all', 'cpu-load', 'disk', 'serial', 'filesystems'):
-                if name == 'cpu-load':
-                    # Make sysdata-version 1.0 look a bit more like 2.x
-                    name = 'cpu-load-all'
                 self.of.write('%s%s"%s": [' % (self._finish_prevnl(), self._indent_prefix, name))
                 self._push(state=name)
             elif name == 'interrupts':
@@ -327,6 +330,14 @@ class SysStatParse(object):
         self.of.write('%s%s"%s": [' % (self._finish_prevnl(), self._indent_prefix, name))
         self._push()
         for nd in ndevs:
+            try:
+                nd['rxkB'] = "%.2f" % (float(nd['rxbyt']) / 1024)
+                nd['txkB'] = "%.2f" % (float(nd['txbyt']) / 1024)
+            except KeyError:
+                pass
+            else:
+                del nd['rxbyt']
+                del nd['txbyt']
             self._data_element_no_name(nd)
         curr_item_cnt = self.item_cnt
         self._pop()
@@ -339,10 +350,7 @@ class SysStatParse(object):
                 curr_item_cnt = self.item_cnt
                 self._pop()
                 self.of.write('%s]' % ('' if curr_item_cnt == 0 else ('\n' + self._indent_prefix)))
-        elif self.state == 'cpu-load-all':
-            if name == 'cpu-load':
-                # Make sysdata-version 1.0 look a bit more like 2.x
-                name = 'cpu-load-all'
+        elif self.state in ('cpu-load', 'cpu-load-all'):
             if name == self.state:
                 curr_item_cnt = self.item_cnt
                 self._pop()
@@ -375,6 +383,7 @@ class SysStatParse(object):
                 self._pop()
                 self.of.write('}')
             elif self.state == 'kernel':
+                # Make sysstat-7.x like sysstat-9.x
                 if name == 'file-sz' and self.curr_element == 'file-sz':
                     self.curr_element = name = 'file-nr'
                 elif name == 'inode-sz' and self.curr_element == 'inode-sz':
@@ -425,7 +434,7 @@ class SysStatParse(object):
             if self.state in ('host', 'sysstat'):
                 self._emit_k_v_nl(name, data)
             else:
-                self._emit_k_v(name, data)
+                self._emit_k_v_sp(name, data)
         elif DEBUG:
             import pdb; pdb.set_trace()
             pass
@@ -435,7 +444,7 @@ class SysStatParse(object):
     def char_data(self, data):
         # Simply accumulate all the data given. This method may be called more
         # than once between start_element and end_element invocations.
-        self.data_buf += data.strip()
+        self.data_buf += data
 
 
 try:
