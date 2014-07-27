@@ -60,7 +60,7 @@ class SysStatParse(object):
       2. the file-sz and inode-sz elements are renamed to file-nr and inode-nr
          to match later output
       3. the net-device element is not carried over
-      3. the rxbyt and txbyt net-dev values are renamed to rxkB and txkB, and
+      4. the rxbyt and txbyt net-dev values are renamed to rxkB and txkB, and
          their values devided by 1,024 to match
 
     No attempt is made to map older element or attribute names into their more
