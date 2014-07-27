@@ -18,5 +18,8 @@ cd $TESTDIR/samples
 for i in $(ls -1 *.xml 2> /dev/null | sed -E s/\.xml// ) ; do
     echo "checking against $i.xml..."
     $BINDIR/xmltojson $i.xml $TESTDIR/output/
-    diff -cw $TESTDIR/gold/$i.json $TESTDIR/output/$i.json
+    diff -c $TESTDIR/gold/$i.json $TESTDIR/output/$i.json > $TESTDIR/output/$i.diff
+    if [ -s $TESTDIR/output/$i.diff ]; then
+        echo "... $i.xml checked FAILED!"
+    fi
 done
