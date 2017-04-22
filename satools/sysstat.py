@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #
 # Copyright 2014 Red Hat, Inc.
 #
@@ -64,10 +64,13 @@ Test in this tree via:
  ***************************************************************************
  */
 """
-import sys, time, os.path, os
+
+import sys, time, os.path, os, lzma
 from datetime import datetime
-from ctypes import Structure, c_int, c_uint, c_ushort, c_uint8, c_ulong, c_char, c_ulonglong
+from ctypes import Structure, c_int, c_uint, c_ushort, c_uint8, c_ulong, c_char, c_ulonglong, c_ubyte
+# why are we using c_uint8 instead of c_ubyte ?
 from abc import ABCMeta, abstractmethod
+from contextlib import closing
 
 
 class Corruption(Exception):
@@ -100,6 +103,9 @@ MAX_COMMENT_LEN = 64
 
 #define UTSNAME_LEN     65
 UTSNAME_LEN = 65
+
+#define FILE_MAGIC_PADDING  63
+FILE_MAGIC_PADDING = 63
 
 #/* Get IFNAMSIZ */
 #include <net/if.h>
@@ -252,13 +258,13 @@ struct file_magic {
             + (4 * 1))
 
     def dump(self, *args, **kwargs):
-        print "file_magic:"
-        print "\tsysstat_magic = 0x%04x" % self.sysstat_magic
-        print "\tformat_magic = 0x%04x" % self.format_magic
-        print "\tsysstat_version", repr(self.sysstat_version)
-        print "\tsysstat_patchlevel", repr(self.sysstat_patchlevel)
-        print "\tsysstat_sublevel", repr(self.sysstat_sublevel)
-        print "\tsysstat_extraversion", repr(self.sysstat_extraversion)
+        print("file_magic:")
+        print("\tsysstat_magic = 0x%04x" % self.sysstat_magic)
+        print("\tformat_magic = 0x%04x" % self.format_magic)
+        print("\tsysstat_version", repr(self.sysstat_version))
+        print("\tsysstat_patchlevel", repr(self.sysstat_patchlevel))
+        print("\tsysstat_sublevel", repr(self.sysstat_sublevel))
+        print("\tsysstat_extraversion", repr(self.sysstat_extraversion))
 
 
 class FileHeader(Structure):
@@ -332,17 +338,17 @@ struct file_header {
             + 4)
 
     def dump(self, format_magic, *args, **kwargs):
-        print "file_header (0x%04x):" % format_magic
-        print "\tsa_ust_time", repr(self.sa_ust_time), datetime.utcfromtimestamp(self.sa_ust_time)
-        print "\tsa_nr_act", repr(self.sa_nr_act)
-        print "\tsa_day", repr(self.sa_day)
-        print "\tsa_month", repr(self.sa_month)
-        print "\tsa_year", repr(self.sa_year)
-        print "\tsa_sizeof_long", repr(self.sa_sizeof_long)
-        print "\tsa_sysname", repr(self.sa_sysname)
-        print "\tsa_nodename", repr(self.sa_nodename)
-        print "\tsa_release", repr(self.sa_release)
-        print "\tsa_machine", repr(self.sa_machine)
+        print("file_header (0x%04x):" % format_magic)
+        print("\tsa_ust_time", repr(self.sa_ust_time), datetime.utcfromtimestamp(self.sa_ust_time))
+        print("\tsa_nr_act", repr(self.sa_nr_act))
+        print("\tsa_day", repr(self.sa_day))
+        print("\tsa_month", repr(self.sa_month))
+        print("\tsa_year", repr(self.sa_year))
+        print("\tsa_sizeof_long", repr(self.sa_sizeof_long))
+        print("\tsa_sysname", repr(self.sa_sysname))
+        print("\tsa_nodename", repr(self.sa_nodename))
+        print("\tsa_release", repr(self.sa_release))
+        print("\tsa_machine", repr(self.sa_machine))
 
 
 class FileStats2169(Structure):
@@ -560,17 +566,17 @@ struct file_stats {
             if val == 0:
                 continue
             if DEBUG:
-                print repr(f)
+                print(repr(f))
                 self.dump(verbose=True)
                 import pdb; pdb.set_trace()
             raise Corruption("non-zero filled padding: fs.%s = 0x%0x, offset: %d" % (f[0], val, offset))
 
     def dump(self, verbose=False, *args, **kwargs):
-        print "file_stats: type %d, ts %r" % (self.record_type, time.gmtime(self.ust_time))
+        print("file_stats: type %d, ts %r" % (self.record_type, time.gmtime(self.ust_time)))
         if not verbose:
             return
         for f in self._fields_:
-            print "\t%s: %r" % (f[0], repr(getattr(self, f[0])))
+            print("\t%s: %r" % (f[0], repr(getattr(self, f[0]))))
 
 
 class StatsOneCpu2169(Structure):
@@ -839,24 +845,24 @@ struct file_hdr {
             + 1)
 
     def dump(self, *args, **kwargs):
-        print "file_header (0x%04x):" % (self.sa_magic,)
-        print "\tsa_ust_time", repr(self.sa_ust_time), datetime.utcfromtimestamp(self.sa_ust_time)
-        print "\tsa_actflag", repr(self.sa_actflag)
-        print "\tsa_nr_pid", repr(self.sa_nr_pid)
-        print "\tsa_irqcpu", repr(self.sa_irqcpu)
-        print "\tsa_nr_disk", repr(self.sa_nr_disk)
-        print "\tsa_proc", repr(self.sa_proc)
-        print "\tsa_serial", repr(self.sa_serial)
-        print "\tsa_iface", repr(self.sa_iface)
-        print "\tsa_magic 0x%04x" % self.sa_magic
-        print "\tsa_st_size", repr(self.sa_st_size)
-        print "\tsa_day", repr(self.sa_day)
-        print "\tsa_month", repr(self.sa_month)
-        print "\tsa_year", repr(self.sa_year)
-        print "\tsa_sizeof_long", repr(self.sa_sizeof_long)
-        print "\tsa_sysname", repr(self.sa_sysname)
-        print "\tsa_nodename", repr(self.sa_nodename)
-        print "\tsa_release", repr(self.sa_release)
+        print("file_header (0x%04x):" % (self.sa_magic,))
+        print("\tsa_ust_time", repr(self.sa_ust_time), datetime.utcfromtimestamp(self.sa_ust_time))
+        print("\tsa_actflag", repr(self.sa_actflag))
+        print("\tsa_nr_pid", repr(self.sa_nr_pid))
+        print("\tsa_irqcpu", repr(self.sa_irqcpu))
+        print("\tsa_nr_disk", repr(self.sa_nr_disk))
+        print("\tsa_proc", repr(self.sa_proc))
+        print("\tsa_serial", repr(self.sa_serial))
+        print("\tsa_iface", repr(self.sa_iface))
+        print("\tsa_magic 0x%04x" % self.sa_magic)
+        print("\tsa_st_size", repr(self.sa_st_size))
+        print("\tsa_day", repr(self.sa_day))
+        print("\tsa_month", repr(self.sa_month))
+        print("\tsa_year", repr(self.sa_year))
+        print("\tsa_sizeof_long", repr(self.sa_sizeof_long))
+        print("\tsa_sysname", repr(self.sa_sysname))
+        print("\tsa_nodename", repr(self.sa_nodename))
+        print("\tsa_release", repr(self.sa_release))
 
 
 class FileHeaderOldGeneric(Structure):
@@ -917,13 +923,13 @@ def read_extra_stats2169(fp, fh, wl=None):
             if wl is not None:
                 wl.append(cpu_stats)
         if DEBUG:
-            print "c_read = ", c_read
+            print("c_read = ", c_read)
     if (fh.sa_actflag & A_ONE_IRQ_B) == A_ONE_IRQ_B:
         interrupt_stats = StatInterrupt2169()
         ret = fp.readinto(interrupt_stats)
         check_readinto(interrupt_stats, ret)
         if DEBUG:
-            print "int_read = ", ret
+            print("int_read = ", ret)
         total_read += ret
         interrupt_stats.dump()
         if wl is not None:
@@ -940,7 +946,7 @@ def read_extra_stats2169(fp, fh, wl=None):
             if wl is not None:
                 wl.append(serial_stats)
         if DEBUG:
-            print "s_read = ", s_read
+            print("s_read = ", s_read)
     if fh.sa_irqcpu:
         i_read = 0
         for i in range(fh.sa_proc * fh.sa_irqcpu):
@@ -953,7 +959,7 @@ def read_extra_stats2169(fp, fh, wl=None):
             if wl is not None:
                 wl.append(irq_cpu_stats)
         if DEBUG:
-            print "i_read = ", i_read
+            print("i_read = ", i_read)
     if fh.sa_iface:
         if_read = 0
         for i in range(fh.sa_iface):
@@ -966,7 +972,7 @@ def read_extra_stats2169(fp, fh, wl=None):
             if wl is not None:
                 wl.append(net_dev_stats)
         if DEBUG:
-            print "if_read = ", if_read
+            print("if_read = ", if_read)
     if fh.sa_nr_disk:
         d_read = 0
         for i in range(fh.sa_nr_disk):
@@ -979,12 +985,12 @@ def read_extra_stats2169(fp, fh, wl=None):
             if wl is not None:
                 wl.append(disk_stats)
         if DEBUG:
-            print "d_read = ", d_read
+            print("d_read = ", d_read)
     return total_read
 
 
 def process_file_2169(fp, fm, fh, fa, magic, callback=None):
-    assert isinstance(fp, file)
+    assert hasattr(fp, 'readinto')
     assert fm is None
     assert isinstance(fh, Structure)
     assert fa is None
@@ -1102,23 +1108,27 @@ struct record_header {
             if val == 0:
                 continue
             if DEBUG:
-                print repr(f)
+                print(repr(f))
                 self.dump(verbose=True)
                 import pdb; pdb.set_trace()
             raise Corruption("non-zero filled padding: rh.%s = 0x%0x, offset: %d" % (f[0], val, offset))
 
     def dump(self, verbose=False, *args, **kwargs):
-        print "record_header: type %d, ts %r" % (self.record_type, time.gmtime(self.ust_time))
+        print("record_header: type %d, ts %r" % (self.record_type, time.gmtime(self.ust_time)))
         if not verbose:
             return
         for f in self._fields_:
-            print "\t%s: %r" % (f[0], repr(getattr(self, f[0])))
+            print("\t%s: %r" % (f[0], repr(getattr(self, f[0]))))
 
 
 class FileActivitySummary(object):
     def __init__(self, fa, total_len):
         self.fa = fa
         self.total_len = total_len
+
+    def dump(self, *args, **kwargs):
+        print("file activity summary, total length: %d" % (self.total_len,))
+
 
 
 class FileActivity2170(Structure):
@@ -1158,7 +1168,7 @@ def get_file_activity_2170(fp, fh):
         if act.nr <= 0:
             if DEBUG:
                 import pdb; pdb.set_trace()
-                print repr(act)
+                print(repr(act))
             raise Invalid("activity count %d <= 0" % act.nr)
         file_activities.append(act)
         if act.id == A_CPU:
@@ -1178,7 +1188,7 @@ def get_file_activity_1170(fp, fh):
 
 
 def process_file_2170(fp, fm, fh, fa, magic, callback=None):
-    assert isinstance(fp, file)
+    assert hasattr(fp, 'readinto')
     assert isinstance(fm, Structure)
     assert isinstance(fh, Structure)
     assert isinstance(fa, FileActivitySummary)
@@ -1297,7 +1307,7 @@ struct file_activity {
 #define FILE_ACTIVITY_SIZE	(sizeof(struct file_activity))
     """
     _fields_ = [ ('id', c_uint),
-                 ('magic', c_int),
+                 ('magic', c_uint),
                  ('nr', c_int),
                  ('nr2', c_int),
                  ('size', c_int),
@@ -1317,7 +1327,7 @@ def get_file_activity_2171(fp, fh):
         if act.nr <= 0 or act.nr2 <= 0:
             if DEBUG:
                 import pdb; pdb.set_trace()
-                print repr(act)
+                print(repr(act))
             raise Invalid("activity counts: (nr %d or nr2 %d) <= 0" % (act.nr, act.nr2))
         file_activities.append(act)
         if act.id == A_CPU:
@@ -1333,6 +1343,222 @@ def get_file_activity_2171(fp, fh):
 
 
 def process_file_2171(fp, fm, fh, fa, magic, callback=None):
+    """
+    While the format magic has changed, the actual on-disk format is not so
+    different since the activities have already been processed. Since all the
+    record reads are performed using the values stored in the activity set,
+    the processing remains the same.
+    """
+    process_file_2170(fp, fm, fh, fa, magic, callback=callback)
+
+
+class FileMagic2173(Structure):
+    """
+As of the final git v10.2.1:
+
+This structure should only be extended in the future, so can serve as the
+generic base structure from which we can interrupt the initial bytes of a file
+to determine what the actual format version is for the rest of the file. If it
+changes in size, which is likely for 10.3.x and later, we can define another
+version for that specific number and insert it in the table below.
+
+/*
+ * Datafile format magic number.
+ * Modified to indicate that the format of the file is
+ * no longer compatible with that of previous sysstat versions.
+ */
+#define FORMAT_MAGIC	0x2173
+
+/* Previous datafile format magic number used by older sysstat versions */
+#define PREVIOUS_FORMAT_MAGIC	0x2171
+
+/* Padding in file_magic structure. See below. */
+#define FILE_MAGIC_PADDING	63
+
+/* Structure for file magic header data */
+struct file_magic {
+	/*
+	 * This field identifies the file as a file created by sysstat.
+	 */
+	unsigned short sysstat_magic;
+	/*
+	 * The value of this field varies whenever datafile format changes.
+	 */
+	unsigned short format_magic;
+	/*
+	 * Sysstat version used to create the file.
+	 */
+	unsigned char sysstat_version;
+	unsigned char sysstat_patchlevel;
+	unsigned char sysstat_sublevel;
+	unsigned char sysstat_extraversion;
+	/*
+	 * Size of file's header (size of file_header structure used by file).
+	 */
+	unsigned int header_size;
+	/*
+	 * Set to non zero if data file has been converted with "sadf -c" from
+	 * an old format (version x.y.z) to a newest format (version X.Y.Z).
+	 * In this case, the value is: Y*16 + Z + 1.
+	 * The FORMAT_MAGIC value of the file can be used to determine X.
+	 */
+	unsigned char upgraded;
+	/*
+	 * Padding. Reserved for future use while avoiding a format change.
+	 */
+	unsigned char pad[FILE_MAGIC_PADDING];
+};
+
+#define FILE_MAGIC_SIZE	(sizeof(struct file_magic))
+    """
+    _fields_ = [ ('sysstat_magic', c_ushort),
+                 ('format_magic', c_ushort),
+                 ('sysstat_version', c_ubyte),
+                 ('sysstat_patchlevel', c_ubyte),
+                 ('sysstat_sublevel', c_ubyte),
+                 ('sysstat_extraversion', c_ubyte),
+                 ('header_size', c_uint),
+                 ('upgraded', c_ubyte),
+                 ('pad', c_ubyte * FILE_MAGIC_PADDING),
+                 ]
+    #FORMAT_MAGIC = 0x2171
+    SIZE = ((2 * 2)
+            + (4 * 1)
+            + (1 * 4)
+            + (1 * 1)
+            + (1 * FILE_MAGIC_PADDING ))
+
+    def dump(self, *args, **kwargs):
+        print("file_magic:")
+        print("\tsysstat_magic = 0x%04x" % self.sysstat_magic)
+        print("\tformat_magic = 0x%04x" % self.format_magic)
+        print("\tsysstat_version", repr(self.sysstat_version))
+        print("\tsysstat_patchlevel", repr(self.sysstat_patchlevel))
+        print("\tsysstat_sublevel", repr(self.sysstat_sublevel))
+        print("\tsysstat_extraversion", repr(self.sysstat_extraversion))
+        print("\theader_size", repr(self.header_size))
+        print("\tupgraded", repr(self.upgraded))
+        print("\tpad", repr(self.pad))
+
+
+class FileHeader2173(Structure):
+    """
+/* Header structure for system activity data file */
+struct file_header {
+	/*
+	 * Timestamp in seconds since the epoch.
+	 */
+	unsigned long sa_ust_time	__attribute__ ((aligned (8)));
+	/*
+	 * Number of CPU items (1 .. CPU_NR + 1) for the last sample in file.
+	 */
+	unsigned int sa_last_cpu_nr	__attribute__ ((aligned (8)));
+	/*
+	 * Number of activities saved in file.
+	 */
+	unsigned int sa_act_nr;
+	/*
+	 * Number of volatile activities in file. This is the number of
+	 * file_activity structures saved after each restart mark in file.
+	 */
+	unsigned int sa_vol_act_nr;
+	/*
+	 * Current day, month and year.
+	 * No need to save DST (Daylight Saving Time) flag, since it is not taken
+	 * into account by the strftime() function used to print the timestamp.
+	 */
+	unsigned char sa_day;
+	unsigned char sa_month;
+	unsigned char sa_year;
+	/*
+	 * Size of a long integer. Useful to know the architecture on which
+	 * the datafile was created.
+	 */
+	char sa_sizeof_long;
+	/*
+	 * Operating system name.
+	 */
+	char sa_sysname[UTSNAME_LEN];
+	/*
+	 * Machine hostname.
+	 */
+	char sa_nodename[UTSNAME_LEN];
+	/*
+	 * Operating system release number.
+	 */
+	char sa_release[UTSNAME_LEN];
+	/*
+	 * Machine architecture.
+	 */
+	char sa_machine[UTSNAME_LEN];
+};
+
+#define FILE_HEADER_SIZE	(sizeof(struct file_header))
+    """
+    _fields_ = [ ('sa_ust_time', c_ulong),
+                 ('sa_last_cpu_nr', c_uint),
+                 ('sa_act_nr', c_uint),
+                 ('sa_vol_act_nr', c_uint),
+                 ('sa_day', c_ubyte), # because, unsigned char
+                 ('sa_month', c_ubyte),
+                 ('sa_year', c_ubyte),
+                 ('sa_sizeof_long', c_char),
+                 ('sa_sysname', c_char * UTSNAME_LEN),
+                 ('sa_nodename', c_char * UTSNAME_LEN),
+                 ('sa_release', c_char * UTSNAME_LEN),
+                 ('sa_machine', c_char * UTSNAME_LEN),
+                 ('_alignment_padding', c_uint),         # Padding due to alignment of first element?
+                 ]
+    SIZE = ((1 * 8)
+            + (3 * 4)
+            + (4 * 1)
+            + (4 * UTSNAME_LEN)
+            + 4)
+
+    def dump(self, format_magic, *args, **kwargs):
+        print("file_header (0x%04x):" % format_magic)
+        print("\tsa_ust_time", repr(self.sa_ust_time), datetime.utcfromtimestamp(self.sa_ust_time))
+        print("\tsa_last_cpu_nr", repr(self.sa_last_cpu_nr))
+        print("\tsa_act_nr", repr(self.sa_act_nr))
+        print("\tsa_vol_act_nr", repr(self.sa_vol_act_nr))
+        print("\tsa_day", repr(self.sa_day))
+        print("\tsa_month", repr(self.sa_month))
+        print("\tsa_year", repr(self.sa_year))
+        print("\tsa_sizeof_long", repr(self.sa_sizeof_long))
+        print("\tsa_sysname", repr(self.sa_sysname))
+        print("\tsa_nodename", repr(self.sa_nodename))
+        print("\tsa_release", repr(self.sa_release))
+        print("\tsa_machine", repr(self.sa_machine))
+
+def get_file_activity_2173(fp, fh):
+    # Read file activities
+    a_cpu = False
+    file_activities = []
+    total_len = 0
+    for i in range(fh.sa_act_nr):
+        # FileActivity2171 and FileActivity2173 are similar
+        act = FileActivity2171()
+        ret = fp.readinto(act)
+        check_readinto(act, ret)
+        if act.nr <= 0 or act.nr2 <= 0:
+            if DEBUG:
+                import pdb; pdb.set_trace()
+                print(repr(act))
+            raise Invalid("activity counts: (nr %d or nr2 %d) <= 0" % (act.nr, act.nr2))
+        file_activities.append(act)
+        if act.id == A_CPU:
+            a_cpu = True
+        total_len += (act.nr * act.nr2 * act.size)
+
+    if not a_cpu:
+        if DEBUG:
+            import pdb; pdb.set_trace()
+        raise Invalid("expected CPU activity")
+
+    return FileActivitySummary(file_activities, total_len)
+
+
+def process_file_2173(fp, fm, fh, fa, magic, callback=None):
     """
     While the format magic has changed, the actual on-disk format is not so
     different since the activities have already been processed. Since all the
@@ -1382,6 +1608,14 @@ class_map = {
         "os-code": "f19",
         "rpm-versions": ("sysstat-10.1.5-1.el7",),
         },
+    0x2173: {
+        "file_magic": FileMagic2173,
+        "file_header": FileHeader2173,
+        "process_file": process_file_2173,
+        "file_activity": get_file_activity_2173,
+        "os-code": "f24",
+        "rpm-versions": ("sysstat-11.2.0-1.el7",),
+        },
     }
 
 
@@ -1389,7 +1623,6 @@ def fetch_fileheader_with_fp(fp):
     fm = FileMagic()
     ret = fp.readinto(fm)
     check_readinto(fm, ret)
-
     fp.seek(0)  # Reset to the beginning to read into the proper structure below.
     if fm.sysstat_magic == SYSSTAT_MAGIC:
         # We have a 9.0.0 and later version
@@ -1487,6 +1720,19 @@ class ContentAction(object):
         pass
 
 
+def verify_contents_fp(fp, tgt_hostname, callback):
+    fm, fh, fa, magic = fetch_fileheader_with_fp(fp)
+    try:
+        the_class_map = class_map[magic]
+    except KeyError:
+        raise Invalid("Unrecognized old sa magic: 0x%04d" % magic)
+    else:
+        if tgt_hostname and (tgt_hostname != fh.sa_nodename.decode('utf-8')):
+            raise Invalid("Target host name, %s, does not match file header node name, %s" % (tgt_hostname, fh.sa_nodename))
+        process_file = the_class_map['process_file']
+    process_file(fp, fm, fh, fa, magic, callback=callback)
+
+
 def verify_contents(thefile, tgt_hostname=None, callback=None):
     """
     Given a sysstat binary data file verify that it contains a set of well
@@ -1511,17 +1757,12 @@ def verify_contents(thefile, tgt_hostname=None, callback=None):
         Truncated: The file does not appear to contain all the data as
                    described by the file header or a given record header
     """
-    with open(thefile, "rb") as fp:
-        fm, fh, fa, magic = fetch_fileheader_with_fp(fp)
-        try:
-            the_class_map = class_map[magic]
-        except KeyError:
-            raise Invalid("Unrecognized old sa magic: 0x%04d" % magic)
-        else:
-            if tgt_hostname and (tgt_hostname != fh.sa_nodename):
-                raise Invalid("Target host name, %s, does not match file header node name, %s" % (tgt_hostname, fh.sa_nodename))
-            process_file = the_class_map['process_file']
-        process_file(fp, fm, fh, fa, magic, callback=callback)
+    try:
+        with lzma.open(thefile, "rb") as fp:
+            verify_contents_fp(fp, tgt_hostname, callback)
+    except lzma.LZMAError:
+        with open(thefile, "rb") as fp:
+            verify_contents_fp(fp, tgt_hostname, callback)
 
 
 def fetch_os_code(magic):
@@ -1541,8 +1782,13 @@ def fetch_fileheader(thefile):
     """
     Fetch the sysstat FileHeader object for the given file path.
     """
-    with open(thefile, "rb") as f:
-        return fetch_fileheader_with_fp(f)
+    try:
+        with lzma.open(thefile, "rb") as fp:
+            res = fetch_fileheader_with_fp(fp)
+    except lzma.LZMAError:
+        with open(thefile, "rb") as fp:
+            res = fetch_fileheader_with_fp(fp)
+    return res
 
 
 if __name__ == "__main__":
@@ -1551,37 +1797,32 @@ if __name__ == "__main__":
     # OS code, and verify its contents.
 
     if os.path.getsize(sys.argv[1]) == 0:
-        print >> sys.stderr, "Invalid - %s: empty data file" % (sys.argv[1],)
+        print("Invalid - %s: empty data file" % (sys.argv[1],), file=sys.stderr)
         sys.exit(1)
 
     try:
         fm, fh, fa, magic = fetch_fileheader(sys.argv[1])
     except Invalid as e:
-        print >> sys.stderr, "Invalid - %s: %s" % (sys.argv[1], e)
+        print("Invalid - %s: %s" % (sys.argv[1], e), file=sys.stderr)
         sys.exit(1)
     except Exception as e:
-        print >> sys.stderr, "Error - %s: %s" % (sys.argv[1], e)
-        sys.exit(1)
-
-    try:
-        val = fetch_os_code(magic)
-    except Invalid as e:
-        print >> sys.stderr, "Invalid - %s: %s" % (sys.argv[1], e)
-        sys.exit(1)
-    except Exception as e:
-        print >> sys.stderr, "Error - %s: %s" % (sys.argv[1], e)
+        print("Error - %s: %s" % (sys.argv[1], e), file=sys.stderr)
         sys.exit(1)
     else:
-        if DEBUG:
-            print "os_code = ", val
+        if DEBUG or 1:
+            fm.dump()
+            fh.dump(fm.format_magic)
+            fa.dump()
+            val = fetch_os_code(magic)
+            print("os_code = ", val)
 
     try:
         verify_contents(sys.argv[1])
     except Invalid as e:
-        print >> sys.stderr, "Invalid - %s: %s" % (sys.argv[1], e)
+        print("Invalid - %s: %s" % (sys.argv[1], e), file=sys.stderr)
         sys.exit(1)
     except Corruption as e:
-        print >> sys.stderr, "Corrupted - %s: %s" % (sys.argv[1], e)
+        print("Corrupted - %s: %s" % (sys.argv[1], e), file=sys.stderr)
         sys.exit(1)
     except Truncated as e:
         sys.exit(1)
