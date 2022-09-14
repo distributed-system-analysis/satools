@@ -8,12 +8,13 @@ package don't support JSON output directly from the sadf command.
 
 To use:
 
+```
 $ # From root of cloned tree
 $ export PYTHONPATH=$(pwd)
 $ cli/verifysa <file>
 $ cli/extractsa <file>
 $ cli/oscode <file>
 $ cli/xmltojson <file>.xml <target-directory>
-
+```
 
 Released under the MIT License.
