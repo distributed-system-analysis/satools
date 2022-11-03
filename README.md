@@ -1,6 +1,8 @@
 satools
 =======
 
+*** Obsolete *** Use [PCP](https://github.com/performancecopilot/pcp) instead.
+
 Tools for working with sar binary data files independent of the version
 of sar that wrote them. It also includes a tool to translate XML output
 to JSON, primarily useful in situations where versions of the sysstat
